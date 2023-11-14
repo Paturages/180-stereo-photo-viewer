@@ -87,6 +87,9 @@ AFRAME.registerComponent('file-picker', {
             let input = document.querySelector("input");
             return loadFile(input.files[0]);
         });
+        window.addEventListener('dragover', $event => {
+            $event.preventDefault();
+        });
         window.addEventListener('drop', $event => {
             $event.preventDefault();
             setVisibilityUsageText(false);
