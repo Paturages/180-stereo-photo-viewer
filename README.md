@@ -24,6 +24,10 @@ You can try it here. https://paturages.github.io/180-stereo-photo-viewer/
 - Recenter  
   Press the <kbd>Space</kbd> bar on the keyboard. (for PC)  
   Long-Press on the browser. (for Mobile)
+- Zoom  
+  Use the scroll wheel
+- Rotate image up/down  
+  Use the up/down arrow keys
 - To disable file picker  
   Remove `file-picker` component from `index.html` `<a-scene 180-stereo-photo-viewer 👉file-picker …>`
 - To disable offline support  

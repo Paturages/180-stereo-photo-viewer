@@ -73,10 +73,16 @@ AFRAME.registerComponent('file-picker', {
             }
             setTimeout(() => {
                 setVisibilityLoadingText(true);
-                let stereoImage = document.getElementById(STEREO_IMAGE_ID);
+                const stereoImage = document.getElementById(STEREO_IMAGE_ID);
+                const hemisphereLeft = document.getElementById(LEFT_EYE_HEMISPHERE_ID);
+                const hemisphereRight = document.getElementById(RIGHT_EYE_HEMISPHERE_ID);
                 delete stereoImage.exifdata;
                 delete stereoImage.xmpdata;
                 delete stereoImage.extendedxmpdata;
+                hemisphereLeft.object3D.rotation.x = 1;
+                hemisphereRight.object3D.rotation.x = 1;
+                hemisphereLeft.object3D.position.z = 0;
+                hemisphereRight.object3D.position.z = 0;
                 return loadImage(stereoImage, URL.createObjectURL(file))
                     .then(stereoImage => {
                         load180StereoImage(stereoImage);
@@ -103,8 +109,9 @@ AFRAME.registerComponent('recenter',  {
     init: function() {
         let cameraParent = this.el;
         cameraParent.addEventListener('recenter', function () {
-            let rotationY = cameraParent.querySelector('a-camera').getAttribute('rotation').y;
-            cameraParent.setAttribute('rotation', {y: -rotationY});
+            const camera = cameraParent.querySelector("a-camera");
+            const rotation = camera.getAttribute("rotation");
+            cameraParent.setAttribute("rotation", { y: -rotation.y });
         });
 
         function recenter() {
@@ -115,6 +122,28 @@ AFRAME.registerComponent('recenter',  {
         window.addEventListener('keydown', function (event) {
             if (event.key === ' ') {
                 recenter();
+            } else if (event.key === 'ArrowDown') {
+                const hemisphereLeft = document.getElementById(LEFT_EYE_HEMISPHERE_ID);
+                const hemisphereRight = document.getElementById(RIGHT_EYE_HEMISPHERE_ID);
+                hemisphereLeft.object3D.rotation.x -= 0.05;
+                hemisphereRight.object3D.rotation.x -= 0.05;
+            } else if (event.key === 'ArrowUp') {
+                const hemisphereLeft = document.getElementById(LEFT_EYE_HEMISPHERE_ID);
+                const hemisphereRight = document.getElementById(RIGHT_EYE_HEMISPHERE_ID);
+                hemisphereLeft.object3D.rotation.x += 0.05;
+                hemisphereRight.object3D.rotation.x += 0.05;
+            }
+        });
+
+        window.addEventListener('wheel', event => {
+            const hemisphereLeft = document.getElementById(LEFT_EYE_HEMISPHERE_ID);
+            const hemisphereRight = document.getElementById(RIGHT_EYE_HEMISPHERE_ID);
+            if (event.deltaY > 0) {
+                hemisphereLeft.object3D.position.z -= 5;
+                hemisphereRight.object3D.position.z -= 5;
+            } else {
+                hemisphereLeft.object3D.position.z += 5;
+                hemisphereRight.object3D.position.z += 5;
             }
         });
 
