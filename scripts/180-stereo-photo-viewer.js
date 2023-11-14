@@ -44,7 +44,7 @@ AFRAME.registerComponent('file-picker', {
         var tapCount = 0;
         let input = document.createElement('input');
         input.type = 'file';
-        input.accept = '.jpg, .jpeg, image/jpeg';
+        // input.accept = '.jpg, .jpeg, image/jpeg';
         document.body.appendChild(input);
 
         let stereoImage = document.getElementById(STEREO_IMAGE_ID);
@@ -64,7 +64,7 @@ AFRAME.registerComponent('file-picker', {
             }
         });
 
-        window.addEventListener('change', function () {
+        const loadFile = file => {
             let timeout = 0;
             if (document.getElementById(STEREO_IMAGE_ID).src !== document.documentURI) {
                 document.getElementById(LEFT_EYE_HEMISPHERE_ID).dispatchEvent(new Event('fadeOut'));
@@ -73,20 +73,26 @@ AFRAME.registerComponent('file-picker', {
             }
             setTimeout(() => {
                 setVisibilityLoadingText(true);
-                let input = document.querySelector('input');
-                readAsDataURLFromFile(input.files[0])
-                    .then(dataURL => {
-                        let stereoImage = document.getElementById(STEREO_IMAGE_ID);
-                        delete stereoImage.exifdata;
-                        delete stereoImage.xmpdata;
-                        delete stereoImage.extendedxmpdata;
-                        return loadImage(stereoImage, dataURL);
-                    })
+                let stereoImage = document.getElementById(STEREO_IMAGE_ID);
+                delete stereoImage.exifdata;
+                delete stereoImage.xmpdata;
+                delete stereoImage.extendedxmpdata;
+                return loadImage(stereoImage, URL.createObjectURL(file))
                     .then(stereoImage => {
                         load180StereoImage(stereoImage);
                     })
             }, timeout);
-        })
+        }
+        window.addEventListener('change', () => {
+            let input = document.querySelector("input");
+            return loadFile(input.files[0]);
+        });
+        window.addEventListener('drop', $event => {
+            $event.preventDefault();
+            setVisibilityUsageText(false);
+            if (!$event.dataTransfer.items || !$event.dataTransfer.items.length) return;
+            loadFile($event.dataTransfer.items[0].getAsFile());
+        });
     }
 });
 
@@ -204,19 +210,22 @@ function loadImage(image, url) {
 }
 
 function load180StereoImage(stereoImage) {
-    getExifData(stereoImage)
-        .then(stereoImage => {
-            let leftEyeImage = document.getElementById(LEFT_EYE_IMAGE_ID);
-            let rightEyeImage = document.getElementById(RIGHT_EYE_IMAGE_ID);
+    let leftEyeImage = document.getElementById(LEFT_EYE_IMAGE_ID);
+    let rightEyeImage = document.getElementById(RIGHT_EYE_IMAGE_ID);
+    loadSBS180Image(stereoImage, leftEyeImage, rightEyeImage);
+    applyZenithCorrection(stereoImage);
+    // getExifData(stereoImage).then((stereoImage) => {
+    //   let leftEyeImage = document.getElementById(LEFT_EYE_IMAGE_ID);
+    //   let rightEyeImage = document.getElementById(RIGHT_EYE_IMAGE_ID);
 
-            if ('extendedxmpdata' in stereoImage) {
-                loadVR180Image(stereoImage, rightEyeImage);
-            } else {
-                loadSBS180Image(stereoImage, leftEyeImage, rightEyeImage);
-            }
+    //   if ("extendedxmpdata" in stereoImage) {
+    //     loadVR180Image(stereoImage, rightEyeImage);
+    //   } else {
+    //     loadSBS180Image(stereoImage, leftEyeImage, rightEyeImage);
+    //   }
 
-            applyZenithCorrection(stereoImage);
-        })
+    //   applyZenithCorrection(stereoImage);
+    // });
 }
 
 function loadVR180Image(leftEyeImage, rightEyeImage) {
@@ -235,10 +244,11 @@ function loadSBS180Image(stereoImage, leftEyeImage, rightEyeImage) {
     context.drawImage(stereoImage, 0, 0, canvas.width, canvas.height, 0, 0, canvas.width, canvas.height);
     context.drawImage(stereoImage, canvas.width, 0, canvas.width, canvas.height, 0, 0, canvas.width, canvas.height);
 
-    Promise.all([
-        loadImage(leftEyeImage, canvas.toDataURL('image/jpeg', 1)),
-        loadImage(rightEyeImage, canvas.toDataURL('image/jpeg', 1))])
-        .then(images => updateBothEyeTextures(images))
+    canvas.toBlob(blob => {
+        const url = URL.createObjectURL(blob);
+        Promise.all([loadImage(leftEyeImage, url), loadImage(rightEyeImage, url)])
+            .then(images => updateBothEyeTextures(images));
+    }, 'image/png');
 }
 
 function updateBothEyeTextures(images) {
