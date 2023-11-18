@@ -273,24 +273,21 @@ function loadSBS180Image(stereoImage, leftEyeImage, rightEyeImage) {
     canvas.width = stereoImage.width / 2;
     canvas.height = stereoImage.height;
 
-    return Promise.all([
-        // Left eye
-        new Promise(resolve => {
-            context.drawImage(stereoImage, 0, 0, canvas.width, canvas.height, 0, 0, canvas.width, canvas.height);
-            canvas.toBlob(blob => {
-                const url = URL.createObjectURL(blob);
-                resolve(loadImage(leftEyeImage, url));
-            }, 'image/png');
-        }),
-        // Right eye
-        new Promise(resolve => {
-            context.drawImage(stereoImage, canvas.width, 0, canvas.width, canvas.height, 0, 0, canvas.width, canvas.height);
-            canvas.toBlob(blob => {
-                const url = URL.createObjectURL(blob);
-                resolve(loadImage(rightEyeImage, url));
-            }, 'image/png');
-        })
-    ]).then(images => updateBothEyeTextures(images));
+    return new Promise(resolve => {
+        context.drawImage(stereoImage, 0, 0, canvas.width, canvas.height, 0, 0, canvas.width, canvas.height);
+        canvas.toBlob(blob => {
+            const url = URL.createObjectURL(blob);
+            resolve(loadImage(leftEyeImage, url));
+        }, 'image/png');
+    })
+    .then(imageLeft => new Promise(resolve => {
+        context.drawImage(stereoImage, canvas.width, 0, canvas.width, canvas.height, 0, 0, canvas.width, canvas.height);
+        canvas.toBlob(blob => {
+            const url = URL.createObjectURL(blob);
+            resolve([imageLeft, loadImage(rightEyeImage, url)]);
+        }, 'image/png');
+    }))
+    .then(images => updateBothEyeTextures(images));
 }
 
 function updateBothEyeTextures(images) {
