@@ -166,15 +166,28 @@ AFRAME.registerComponent('recenter',  {
         // for Mobile
         let longTapTimer;
 
+        function clearLongTap() {
+            clearTimeout(longTapTimer);
+            longTapTimer = null;
+        }
+
         window.addEventListener('touchstart', function () {
+            clearLongTap();
             longTapTimer = setTimeout(function () {
+                longTapTimer = null;
                 recenter();
             }, 1000);
-        });
+        }, { passive: true });
 
-        window.addEventListener('touchend', function () {
-            clearTimeout(longTapTimer);
-        })
+        // Cancel long-press recenter when the finger moves (look-drag / scroll).
+        window.addEventListener('touchmove', clearLongTap, { passive: true });
+        window.addEventListener('touchend', clearLongTap, { passive: true });
+        window.addEventListener('touchcancel', clearLongTap, { passive: true });
+
+        // Suppress the iOS/Android callout / context menu on long-press.
+        window.addEventListener('contextmenu', function (event) {
+            event.preventDefault();
+        });
     }
 });
 

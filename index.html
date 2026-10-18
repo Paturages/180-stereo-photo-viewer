@@ -13,6 +13,79 @@
     <link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
     <link rel="icon" type="image/png" sizes="192x192" href="icons/icon-192.png">
     <title>180 Stereo Photo Viewer</title>
+    <style>
+        /*
+         * iOS installed PWAs size position:fixed / 100% / 100dvh to the *small*
+         * viewport, leaving a home-indicator-tall gap that paints white. Use the
+         * large viewport (100vh / 100lvh) in standalone, and keep html black as
+         * a safety net for any unpainted edge.
+         */
+        html {
+            background: #000 !important;
+            color-scheme: dark;
+        }
+        html, body,
+        html.a-fullscreen,
+        html.a-fullscreen body {
+            margin: 0;
+            padding: 0;
+            width: 100%;
+            height: 100%;
+            background: #000 !important;
+            overflow: hidden;
+            -webkit-user-select: none;
+            user-select: none;
+            -webkit-touch-callout: none;
+            -webkit-tap-highlight-color: transparent;
+        }
+        .a-scene,
+        html.a-fullscreen .a-canvas {
+            width: 100% !important;
+            height: 100% !important;
+            display: block;
+            background: #000 !important;
+        }
+        @media (display-mode: standalone), (display-mode: fullscreen) {
+            html.a-fullscreen {
+                /* A-Frame pins top/bottom:0 to the *small* viewport on iOS. */
+                bottom: auto !important;
+                height: 100vh !important;
+                height: 100lvh !important;
+            }
+            html, body,
+            html.a-fullscreen body,
+            .a-scene,
+            html.a-fullscreen .a-canvas {
+                bottom: auto !important;
+                height: 100vh !important;
+                height: 100lvh !important;
+                min-height: 100vh !important;
+                min-height: 100lvh !important;
+            }
+        }
+        /* iOS Safari sets navigator.standalone but not always display-mode. */
+        html.ios-standalone.a-fullscreen {
+            bottom: auto !important;
+            height: 100vh !important;
+            height: 100lvh !important;
+        }
+        html.ios-standalone,
+        html.ios-standalone body,
+        html.ios-standalone.a-fullscreen body,
+        html.ios-standalone .a-scene,
+        html.ios-standalone.a-fullscreen .a-canvas {
+            bottom: auto !important;
+            height: 100vh !important;
+            height: 100lvh !important;
+            min-height: 100vh !important;
+            min-height: 100lvh !important;
+        }
+    </style>
+    <script>
+        if (navigator.standalone || window.matchMedia('(display-mode: standalone)').matches) {
+            document.documentElement.classList.add('ios-standalone');
+        }
+    </script>
     <!--  A-Frame (https://github.com/aframevr/aframe)
           Copyright © 2015-2017 A-Frame authors.
           MIT License (https://github.com/aframevr/aframe/blob/master/LICENSE)  -->
