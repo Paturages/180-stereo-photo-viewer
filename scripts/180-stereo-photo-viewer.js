@@ -109,9 +109,24 @@ AFRAME.registerComponent('recenter',  {
     init: function() {
         let cameraParent = this.el;
         cameraParent.addEventListener('recenter', function () {
-            const camera = cameraParent.querySelector("a-camera");
-            const rotation = camera.getAttribute("rotation");
-            cameraParent.setAttribute("rotation", { y: -rotation.y });
+            const camera = cameraParent.querySelector('a-camera');
+            // look-controls writes object3D directly; read radians from there.
+            const camRot = camera.object3D.rotation;
+            const radToDeg = AFRAME.THREE.MathUtils.radToDeg;
+
+            // Cancel yaw + pitch; keep roll level (look-controls uses YXZ).
+            cameraParent.object3D.rotation.order = 'YXZ';
+            cameraParent.setAttribute('rotation', {
+                x: radToDeg(-camRot.x),
+                y: radToDeg(-camRot.y),
+                z: 0
+            });
+
+            // Undo manual sphere pitch; restore zenith baseline from the photo.
+            const stereoImage = document.getElementById(STEREO_IMAGE_ID);
+            if (stereoImage) {
+                applyZenithCorrection(stereoImage);
+            }
         });
 
         function recenter() {
