@@ -151,27 +151,75 @@ AFRAME.registerComponent('recenter',  {
             }
         });
 
-        window.addEventListener('wheel', event => {
+        const ZOOM_STEP = 5;
+        // ~25px of pinch equals one scroll-wheel step.
+        const PINCH_ZOOM_PER_PX = ZOOM_STEP / 25;
+
+        function adjustZoom(delta) {
             const hemisphereLeft = document.getElementById(LEFT_EYE_HEMISPHERE_ID);
             const hemisphereRight = document.getElementById(RIGHT_EYE_HEMISPHERE_ID);
-            if (event.deltaY > 0) {
-                hemisphereLeft.object3D.position.z -= 5;
-                hemisphereRight.object3D.position.z -= 5;
-            } else {
-                hemisphereLeft.object3D.position.z += 5;
-                hemisphereRight.object3D.position.z += 5;
-            }
+            hemisphereLeft.object3D.position.z += delta;
+            hemisphereRight.object3D.position.z += delta;
+        }
+
+        window.addEventListener('wheel', event => {
+            adjustZoom(event.deltaY > 0 ? -ZOOM_STEP : ZOOM_STEP);
         });
 
         // for Mobile
         let longTapTimer;
+        let pinch = null;
 
         function clearLongTap() {
             clearTimeout(longTapTimer);
             longTapTimer = null;
         }
 
-        window.addEventListener('touchstart', function () {
+        function fingerDistance(touches) {
+            const dx = touches[0].clientX - touches[1].clientX;
+            const dy = touches[0].clientY - touches[1].clientY;
+            return Math.hypot(dx, dy);
+        }
+
+        function setTouchLookEnabled(enabled) {
+            const camera = cameraParent.querySelector('a-camera');
+            const lookControls = camera && camera.components['look-controls'];
+            if (lookControls) {
+                lookControls.data.touchEnabled = enabled;
+            }
+        }
+
+        function beginPinch(touches) {
+            clearLongTap();
+            const hemisphereLeft = document.getElementById(LEFT_EYE_HEMISPHERE_ID);
+            pinch = {
+                distance: fingerDistance(touches),
+                z: hemisphereLeft.object3D.position.z
+            };
+            // A one-finger drag looks around; don't yaw while pinching.
+            setTouchLookEnabled(false);
+        }
+
+        function updatePinch(touches) {
+            const distance = fingerDistance(touches);
+            const z = pinch.z + (distance - pinch.distance) * PINCH_ZOOM_PER_PX;
+            const hemisphereLeft = document.getElementById(LEFT_EYE_HEMISPHERE_ID);
+            const hemisphereRight = document.getElementById(RIGHT_EYE_HEMISPHERE_ID);
+            hemisphereLeft.object3D.position.z = z;
+            hemisphereRight.object3D.position.z = z;
+        }
+
+        function endPinch() {
+            if (!pinch) return;
+            pinch = null;
+            setTouchLookEnabled(true);
+        }
+
+        window.addEventListener('touchstart', function (event) {
+            if (event.touches.length >= 2) {
+                if (!pinch) beginPinch(event.touches);
+                return;
+            }
             clearLongTap();
             longTapTimer = setTimeout(function () {
                 longTapTimer = null;
@@ -179,10 +227,32 @@ AFRAME.registerComponent('recenter',  {
             }, 1000);
         }, { passive: true });
 
-        // Cancel long-press recenter when the finger moves (look-drag / scroll).
-        window.addEventListener('touchmove', clearLongTap, { passive: true });
-        window.addEventListener('touchend', clearLongTap, { passive: true });
-        window.addEventListener('touchcancel', clearLongTap, { passive: true });
+        // Cancel long-press recenter when the finger moves (look-drag / pinch).
+        window.addEventListener('touchmove', function (event) {
+            clearLongTap();
+            if (!pinch || event.touches.length < 2) return;
+            event.preventDefault();
+            event.stopImmediatePropagation();
+            updatePinch(event.touches);
+        }, { passive: false });
+
+        window.addEventListener('touchend', function (event) {
+            clearLongTap();
+            if (event.touches.length < 2) endPinch();
+        }, { passive: true });
+
+        window.addEventListener('touchcancel', function (event) {
+            clearLongTap();
+            if (event.touches.length < 2) endPinch();
+        }, { passive: true });
+
+        // Keep Safari from handling the pinch as a page zoom.
+        window.addEventListener('gesturestart', function (event) {
+            event.preventDefault();
+        });
+        window.addEventListener('gesturechange', function (event) {
+            event.preventDefault();
+        });
 
         // Suppress the iOS/Android callout / context menu on long-press.
         window.addEventListener('contextmenu', function (event) {
