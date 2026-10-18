@@ -163,16 +163,24 @@ AFRAME.registerComponent('recenter',  {
 });
 
 window.onload = () => {
+  const scene = document.querySelector("a-scene");
+  const start = () => {
     generateBothEyeImages();
     generateBothEyeHemispheres();
 
-    let stereoImage = document.getElementById(STEREO_IMAGE_ID);
+    const stereoImage = document.getElementById(STEREO_IMAGE_ID);
     if (stereoImage.src === document.documentURI) {
-        setVisibilityLoadingText(false);
-        return;
+      setVisibilityLoadingText(false);
+      return;
     }
-
     load180StereoImage(stereoImage);
+  };
+
+  if (scene.hasLoaded) {
+    start();
+  } else {
+    scene.addEventListener("loaded", start, { once: true });
+  }
 };
 
 function generateBothEyeImages() {
@@ -190,7 +198,7 @@ function generateBothEyeHemispheres() {
     for (let i = 0; i < 2; i++) {
         let hemisphere = document.createElement('a-entity');
         hemisphere.setAttribute('geometry', 'primitive: sphere; radius:100; segmentsWidth: 64; segmentsHeight:64; phi-start: 180; phi-length: 180');
-        hemisphere.setAttribute('material', 'shader: flat; color: black; side: back; npot: true');
+        hemisphere.setAttribute('material', 'shader: flat; color: black; side: back; minFilter: linear');
         hemisphere.setAttribute('scale', '-1 1 1');
         hemisphere.setAttribute('animation__fade-out', 'property: components.material.material.color; type: color; from: #FFF; to: #000; dur: 300; startEvents: fadeOut');
         hemisphere.setAttribute('animation__fade-in', 'property: components.material.material.color; type: color; from: #000; to: #FFF; dur: 300; startEvents: fadeIn');
